@@ -2,3 +2,5 @@ pywin32
 opencv-python
 numpy
 Pillow
+tensorflow
+keras

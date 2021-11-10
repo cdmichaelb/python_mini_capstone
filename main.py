@@ -11,6 +11,8 @@ from PIL import Image
 import win32gui
 import win32ui
 from ctypes import windll
+# I have tensorflow installed, but for some reason it isn't working???
+import tensorflow as tf
 
 
 class ImageVisualizer:
@@ -112,7 +114,7 @@ class ImageVisualizer:
             w = self.template_img.shape[1]
             h = self.template_img.shape[0]
 
-            threshold = 0.8
+            threshold = 0.65
             yloc, xloc = np.where(self.processed_image > threshold)
 
             rectangles = []
@@ -180,6 +182,54 @@ class MultiProcess:
             po.map(viz2, range(10))
             po.close()
             po.join
+
+
+# Need to create a model.
+class ImageClassifier:
+    """
+    This class will handle the image classification.
+    """
+
+    def __init__(self, model_name: str, model_path: str):
+        """
+        This function will initialize the class and set the model name and model path.
+        :param model_name: The name of the model
+        :param model_path: The path of the model
+        """
+        self.model_name = model_name
+        self.model_path = model_path
+
+    def __str__(self) -> str:
+        pass
+
+    def load_model(self):
+        """
+        This function will load the model.
+        """
+        # Load the model
+        self.model = tf.keras.models.load_model(self.model_path)
+
+    def classify_image(self, image: np.ndarray) -> str:
+        """
+        This function will classify the image and return the class name.
+        :param image: The image to be classified
+        :return: The class name
+        :rtype: str
+        """
+        # Convert the image to a numpy array
+        image = np.array(image)
+        # Resize the image
+        image = cv2.resize(image, (64, 64))
+        # Convert the image to a numpy array
+        image = np.array(image)
+        # Normalize the image
+        image = image / 255.0
+        # Add a fourth dimension to the image
+        image = np.expand_dims(image, axis=0)
+        # Classify the image
+        prediction = self.model.predict(image)
+        # Return the class name
+        return self.model_name + ": " + str(np.argmax(prediction))
 
 
 if __name__ == "__main__":
