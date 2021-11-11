@@ -8,14 +8,14 @@ import multiprocessing
 import cv2
 import numpy as np
 from PIL import Image
+import pywintypes # Work around for win32gui on python 3.97.
 import win32gui
 import win32ui
 from ctypes import windll
-# I have tensorflow installed, but for some reason it isn't working???
-import tensorflow as tf
+import tensorflow as tf # Does not work on Python 3.10, using 3.97 instead.
 
 
-class ImageVisualizer:
+class ImageVisualizer():
     def __init__(self, window_name="Image Visualizer") -> None:
         """
         This function will initialize the class and set the window name and template image to be used for the visualizer function.
@@ -136,17 +136,17 @@ class ImageVisualizer:
                 break
 
 
-def viz1():
+def viz1(arg):
     """
     This function will initialize the class and set the window name and template image to be used for the visualizer function.
     """
     # Initialize the class
-    viewer = ImageVisualizer("AFK Arena")
+    viewer = ImageVisualizer(arg)
     # Run the visualizer function
     viewer.visualizer()
 
 
-def viz2():
+def viz2(arg):
     """
     This function will initialize the class and set the window name and template image to be used for the visualizer function.
     """
@@ -177,9 +177,9 @@ class MultiProcess:
         """
         # Start the process
         for process in self.process_names:
-            po = multiprocessing.Pool(processes=12)
-            po.map(viz1, range(10))
-            po.map(viz2, range(10))
+            po = multiprocessing.Pool(processes=2)
+            po.map(viz1, process)
+           
             po.close()
             po.join
 
@@ -239,14 +239,12 @@ if __name__ == "__main__":
     Should make this into a class.
     """
     process_list = []
-    # process_list.append(viz1)
-    # process_list.append(viz2)
+    process_list.append("poring")
+    process_list.append("AFK Arena")
 
-    # multithreading = MultiProcess()
-    # multithreading.start_process()
+    multithreading = MultiProcess(process_list)
+    multithreading.start_process()
 
-    # Remove Multithreading until I can escape it properly.
-
-    viz1()
+    
 
     ...  # Add more code here
