@@ -197,8 +197,10 @@ class MultiProcess:
         # Start the process
         for process in self.process_names:
             po = multiprocessing.Process(target=main, args=(process,))
-            po.start()
-            po.join
+            # Start the process
+            po.start() 
+            # Wait for the process to finish
+            #po.join
 
 
 if __name__ == "__main__":
