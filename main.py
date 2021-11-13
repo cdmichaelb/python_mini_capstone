@@ -4,14 +4,14 @@ PDX Code Guild Full Stack Bootcamp
 Michael B
 """
 
-import multiprocessing
-import cv2
-import numpy as np
-from PIL import Image
-import win32gui
-import win32ui
-from ctypes import windll
-import os
+import multiprocessing # Multiprocessing
+import cv2 # Computer Vision Functions
+import numpy as np # Math Functions
+from PIL import Image # Image Functions
+import win32gui # Window Functions
+import win32ui # Window Functions
+from ctypes import windll # Window Functions
+import os # File System Functions
 
 
 def load_images(folder_path) -> list:
@@ -164,7 +164,7 @@ class ImageVisualizer:
             cv2.imshow(self.window_name, self.unprocessed_img)
 
 
-def viz1(process_name) -> None:
+def main(process_name) -> None:
     """
     This function will initialize the class and set the window name and template image to be used for the visualizer function.
     :param process_name: The name of the process to be used for the visualizer
@@ -196,7 +196,7 @@ class MultiProcess:
         """
         # Start the process
         for process in self.process_names:
-            po = multiprocessing.Process(target=viz1, args=(process,))
+            po = multiprocessing.Process(target=main, args=(process,))
             po.start()
             po.join
 
