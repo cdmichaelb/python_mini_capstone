@@ -11,6 +11,22 @@ from PIL import Image
 import win32gui
 import win32ui
 from ctypes import windll
+import os
+
+
+def load_images(folder_path) -> list:
+    """
+    This function will load all the images from a folder into an array.
+    :param folder_path: The path to the folder containing the images
+    :return: An array containing all the images
+    """
+    # Initialize the array
+    images = []
+    # Load all the images from the folder into the array
+    for filename in os.listdir(folder_path):
+        images.append(cv2.imread(folder_path + filename, cv2.IMREAD_GRAYSCALE))
+    # Return the array
+    return images
 
 
 class ImageVisualizer:
@@ -22,7 +38,8 @@ class ImageVisualizer:
         """
         self.window_name = window_name
         self.hwnd = win32gui.FindWindow(None, self.window_name)
-        self.template_img = cv2.imread("template.png", cv2.IMREAD_GRAYSCALE)
+        self.template_imgs = load_images("templates/")
+        # Array to hold the template images
         self.processed_image = None
         self.unprocessed_img = None
         self.threshold = 0.89
@@ -109,47 +126,45 @@ class ImageVisualizer:
             This loop will run until the user presses the 'q' key.
             The image will be shown and the template image will be highlighted.
             """
-            # Increase the threshold
-            if cv2.waitKey(1) & 0xFF == ord("+"):
-                self.threshold += 0.001
-                print("Threshold:", self.threshold)
-            # Decrease the threshold
-            elif cv2.waitKey(1) & 0xFF == ord("-"):
-                self.threshold -= 0.001
-                print("Threshold:", self.threshold)
-            # Quit the program
-            elif cv2.waitKey(25) & 0xFF == ord("q"):
-                cv2.destroyAllWindows()
-                break
-            # Process the image
-            self.processed_image, self.unprocessed_img = self.process_img(
-                np.array(self.take_screenshot()), self.template_img
-            )
-            # Get the width of the template image
-            w = self.template_img.shape[1]
-            # Get the height of the template image
-            h = self.template_img.shape[0]
-            # Find the template image
-            yloc, xloc = np.where(self.processed_image > self.threshold)
             rectangles = []
-            # Loop through the template image
-            for (x, y) in zip(xloc, yloc):
-                # Add the rectangle to the list twice (for grouping purposes)
-                rectangles.append((x, y, w, h))
-                rectangles.append((x, y, w, h))
-            # Group the rectangles
-            rectangles, weights = cv2.groupRectangles(rectangles, 1, 0.2)
-            # Loop through the rectangles
-            for (x, y, w, h) in rectangles:
-                # Draw the rectangle on the image
-                cv2.rectangle(
-                    self.unprocessed_img, (x, y), (x + w, y + h), (0, 255, 0), 2
+
+            # Take a screenshot of the screen
+            screenshot = self.take_screenshot()
+            # Process the image
+
+            for template_img in self.template_imgs:
+                self.processed_image, self.unprocessed_img = self.process_img(
+                    np.array(screenshot), template_img
                 )
+                # Get the width of the template image
+                w = template_img.shape[1]
+                # Get the height of the template image
+                h = template_img.shape[0]
+                # Find the template image
+                yloc, xloc = np.where(self.processed_image > self.threshold)
 
-            cv2.imshow(self.window_name, self.unprocessed_img)  # Show the image
+                # Loop through the template image
+                for (x, y) in zip(xloc, yloc):
+                    # Add the rectangle to the list twice (for grouping purposes)
+                    rectangles.append((x, y, w, h))
+                    rectangles.append((x, y, w, h))
+                # Group the rectangles
+                rectangles2, weights = cv2.groupRectangles(rectangles, 1, 0.2)
+                # Loop through the rectangles
+                for (x, y, w, h) in rectangles2:
+                    # Draw the rectangle on the image
+                    cv2.rectangle(
+                        self.unprocessed_img, (x, y), (x + w, y + h), (0, 255, 0), 2
+                    )
+                    # Increase the threshold
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    cv2.destroyAllWindows()
+                    quit()
+            # Show the image
+            cv2.imshow(self.window_name, self.unprocessed_img)
 
 
-def viz1(process_name):
+def viz1(process_name) -> None:
     """
     This function will initialize the class and set the window name and template image to be used for the visualizer function.
     :param process_name: The name of the process to be used for the visualizer
@@ -165,7 +180,7 @@ class MultiProcess:
     This class will handle multiple processes.
     """
 
-    def __init__(self, process_names: list):
+    def __init__(self, process_names: list) -> None:
         """
         This function will initialize the class and set the process name.
         :param process_names: The names of the processes to be used
@@ -175,7 +190,7 @@ class MultiProcess:
     def __str__(self) -> str:
         pass
 
-    def start_process(self):
+    def start_process(self) -> None:
         """
         This function will start the process.
         """
