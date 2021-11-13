@@ -8,14 +8,12 @@ import multiprocessing
 import cv2
 import numpy as np
 from PIL import Image
-import pywintypes # Work around for win32gui on python 3.97.
 import win32gui
 import win32ui
 from ctypes import windll
-import tensorflow as tf # Does not work on Python 3.10, using 3.97 instead.
 
 
-class ImageVisualizer():
+class ImageVisualizer:
     def __init__(self, window_name="Image Visualizer") -> None:
         """
         This function will initialize the class and set the window name and template image to be used for the visualizer function.
@@ -27,6 +25,7 @@ class ImageVisualizer():
         self.template_img = cv2.imread("template.png", cv2.IMREAD_GRAYSCALE)
         self.processed_image = None
         self.unprocessed_img = None
+        self.threshold = 0.89
 
     def __str__(self) -> str:
         pass
@@ -40,15 +39,15 @@ class ImageVisualizer():
         :rtype: numpy.ndarray
         """
         # Convert to grayscale
-        processed_img = cv2.cvtColor(np.array(original_image), cv2.COLOR_BGR2GRAY)
-        unprocessed_img = cv2.cvtColor(np.array(original_image), cv2.COLOR_BGR2RGB)
+        self.processed_img = cv2.cvtColor(np.array(original_image), cv2.COLOR_BGR2GRAY)
+        self.unprocessed_img = cv2.cvtColor(np.array(original_image), cv2.COLOR_BGR2RGB)
 
         # Find the template
-        processed_img = cv2.matchTemplate(
-            processed_img, template_img, cv2.TM_CCOEFF_NORMED
+        self.processed_img = cv2.matchTemplate(
+            self.processed_img, template_img, cv2.TM_CCOEFF_NORMED
         )
 
-        return processed_img, unprocessed_img
+        return self.processed_img, self.unprocessed_img
 
     def take_screenshot(self) -> np.ndarray:
         """
@@ -86,15 +85,18 @@ class ImageVisualizer():
             1,
         )
 
-        # im = np.array(im)
-        # im = im[:, :, ::-1].copy()
-
+        # Delete the bitmap
         win32gui.DeleteObject(saveBitMap.GetHandle())
+        # Delete the saveDC
         saveDC.DeleteDC()
+        # Delete the mfcDC
         mfcDC.DeleteDC()
+        # Release the window handle
         win32gui.ReleaseDC(self.hwnd, hwndDC)
 
+        # If the window is visible
         if result == 1:
+            # Return the image
             return im
 
     def visualizer(self) -> None:
@@ -107,53 +109,55 @@ class ImageVisualizer():
             This loop will run until the user presses the 'q' key.
             The image will be shown and the template image will be highlighted.
             """
+            # Increase the threshold
+            if cv2.waitKey(1) & 0xFF == ord("+"):
+                self.threshold += 0.001
+                print("Threshold:", self.threshold)
+            # Decrease the threshold
+            elif cv2.waitKey(1) & 0xFF == ord("-"):
+                self.threshold -= 0.001
+                print("Threshold:", self.threshold)
+            # Quit the program
+            elif cv2.waitKey(25) & 0xFF == ord("q"):
+                cv2.destroyAllWindows()
+                break
+            # Process the image
             self.processed_image, self.unprocessed_img = self.process_img(
                 np.array(self.take_screenshot()), self.template_img
             )
-
+            # Get the width of the template image
             w = self.template_img.shape[1]
+            # Get the height of the template image
             h = self.template_img.shape[0]
-
-            threshold = 0.65
-            yloc, xloc = np.where(self.processed_image > threshold)
-
+            # Find the template image
+            yloc, xloc = np.where(self.processed_image > self.threshold)
             rectangles = []
+            # Loop through the template image
             for (x, y) in zip(xloc, yloc):
+                # Add the rectangle to the list twice (for grouping purposes)
                 rectangles.append((x, y, w, h))
                 rectangles.append((x, y, w, h))
-
+            # Group the rectangles
             rectangles, weights = cv2.groupRectangles(rectangles, 1, 0.2)
-
+            # Loop through the rectangles
             for (x, y, w, h) in rectangles:
+                # Draw the rectangle on the image
                 cv2.rectangle(
                     self.unprocessed_img, (x, y), (x + w, y + h), (0, 255, 0), 2
                 )
 
-            cv2.imshow(self.window_name, self.unprocessed_img)
-
-            if cv2.waitKey(25) & 0xFF == ord("q"):
-                cv2.destroyAllWindows()
-                break
+            cv2.imshow(self.window_name, self.unprocessed_img)  # Show the image
 
 
-def viz1(arg):
+def viz1(process_name):
     """
     This function will initialize the class and set the window name and template image to be used for the visualizer function.
+    :param process_name: The name of the process to be used for the visualizer
     """
     # Initialize the class
-    viewer = ImageVisualizer(arg)
+    viewer = ImageVisualizer(process_name)
     # Run the visualizer function
     viewer.visualizer()
-
-
-def viz2(arg):
-    """
-    This function will initialize the class and set the window name and template image to be used for the visualizer function.
-    """
-    # Initialize the class
-    viewer2 = ImageVisualizer("poring")
-    # Run the visualizer function
-    viewer2.visualizer()
 
 
 class MultiProcess:
@@ -164,7 +168,7 @@ class MultiProcess:
     def __init__(self, process_names: list):
         """
         This function will initialize the class and set the process name.
-        :param process_name: The name of the process
+        :param process_names: The names of the processes to be used
         """
         self.process_names = process_names
 
@@ -177,59 +181,9 @@ class MultiProcess:
         """
         # Start the process
         for process in self.process_names:
-            po = multiprocessing.Pool(processes=2)
-            po.map(viz1, process)
-           
-            po.close()
+            po = multiprocessing.Process(target=viz1, args=(process,))
+            po.start()
             po.join
-
-
-# Need to create a model.
-class ImageClassifier:
-    """
-    This class will handle the image classification.
-    """
-
-    def __init__(self, model_name: str, model_path: str):
-        """
-        This function will initialize the class and set the model name and model path.
-        :param model_name: The name of the model
-        :param model_path: The path of the model
-        """
-        self.model_name = model_name
-        self.model_path = model_path
-
-    def __str__(self) -> str:
-        pass
-
-    def load_model(self):
-        """
-        This function will load the model.
-        """
-        # Load the model
-        self.model = tf.keras.models.load_model(self.model_path)
-
-    def classify_image(self, image: np.ndarray) -> str:
-        """
-        This function will classify the image and return the class name.
-        :param image: The image to be classified
-        :return: The class name
-        :rtype: str
-        """
-        # Convert the image to a numpy array
-        image = np.array(image)
-        # Resize the image
-        image = cv2.resize(image, (64, 64))
-        # Convert the image to a numpy array
-        image = np.array(image)
-        # Normalize the image
-        image = image / 255.0
-        # Add a fourth dimension to the image
-        image = np.expand_dims(image, axis=0)
-        # Classify the image
-        prediction = self.model.predict(image)
-        # Return the class name
-        return self.model_name + ": " + str(np.argmax(prediction))
 
 
 if __name__ == "__main__":
@@ -241,10 +195,8 @@ if __name__ == "__main__":
     process_list = []
     process_list.append("poring")
     process_list.append("AFK Arena")
-
+    # Create a new instance of the class
     multithreading = MultiProcess(process_list)
+    # Start the process
     multithreading.start_process()
-
-    
-
     ...  # Add more code here
