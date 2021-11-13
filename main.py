@@ -210,6 +210,8 @@ if __name__ == "__main__":
     process_list = []
     process_list.append("poring")
     process_list.append("AFK Arena")
+    process_list.append("AfkArenaTest")
+    process_list.append("Ragnarok")
     # Create a new instance of the class
     multithreading = MultiProcess(process_list)
     # Start the process
